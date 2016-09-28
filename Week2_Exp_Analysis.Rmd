@@ -1,0 +1,295 @@
+---
+title: "Datasets Exploratory Analysis for Predictive Text Modelling"
+author: "Karthik Kalimuthu"
+date: "Sunday, August 28, 2016"
+output: html_document
+---
+
+# Introduction
+
+This report consist of information related to [text datasets](https://eventing.coursera.org/api/redirectStrict/Oe0B9j4ELaZM3Dnh9zsgjk2mcQPqMDu5-V-nlg6-bwz6ep_n3cWzGhMAnFuTNiyVeYGsKhOvojuZmOJtQJD55w.4AWKOEVhFR8pM9X5w1h3TA.DPJbKBOrEMml-VxaEOKttIRO5jDGA09nwKPRWZBkT8C9hJVRaRMT_Oa1UMA_wej8EJKYMZHiojgYnXSM1hK6o4icRYFknhP3erfpIppd_NKf8VHLOSn3lt5QuTJdeMYaE2LuBMmoAs9I6L3Hvn-vwCT1tFRgijY9VB_OUj-l1fIfuNM92trI0xiWuFZtM1lSV-Qxu8HCsbk9_VgE_kz3hzknd7mYLTCzrkaetx5Bahuf1lvO5upT5EoVTHTcUGcK2f0KRDGq9T5anjfIJ-WePZSCmVogTU2IZS9PrhFDukPttCfo2elLxHBqXArJpfU77hlkfR84tPwU3LgBSM8n_aQgOZoJxQBhJCgyfoHfxOG5O2A2ks7gcmoVtd8ogVWQz7R9EIOgYgt4Lxz3ov9lMOqkbCUmgP4KHO14AcCRHD4) exploratory analysis performed for the end purpose of building a Predictive Text Model Shinny application in near future.
+
+```{r globalSettings, include = FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, echo = FALSE, results = "hide", cache = TRUE)
+```
+```{r loadPackages}
+library(slam)
+library(reshape2)
+library(tm)
+library(ggplot2)
+library(wordcloud)
+library(RWeka)
+```
+
+```{r initializations}
+set.seed(55669)
+```
+
+```{r declareVariables}
+filePathSep <- "\\"
+fileNameSep <- "."
+swiftKeyDirectory <- "C:/Karthik/SData_Science/Capstone_Project/SCapstone"
+finalDirectory <- paste(swiftKeyDirectory, "final", sep = filePathSep)
+outputDirectory <- paste(swiftKeyDirectory, "output", sep = filePathSep) 
+localesAvail <- c("de_DE", "en_US", "fi_FI", "ru_RU")
+locales <- localesAvail[2]
+contexts <- c("blogs", "news", "twitter")
+fileExt <- "txt"
+```
+
+# Procedure
+
+This section consist of information related to getting and cleaning the datasets followed by procedures taken to represent the datasets as `Corpus` R Objects.
+
+## Getting the Data
+```{r}
+getFileInfo <- function(directory) {
+  df <- data.frame(name = c(), size = c())
+  for (locale in locales) {
+    for (context in contexts) {
+      fileName <- paste(locale, context, fileExt, sep = fileNameSep)
+      fullQualifiedFileName <- paste(directory, locale, fileName, sep = filePathSep)
+      if (file.exists(fullQualifiedFileName) == TRUE) {
+        fInfo <- file.info(fullQualifiedFileName)
+        fileSizeInMb <- paste(round(fInfo$size / 1024 / 1024, 2), "MB")
+        df <- rbind(df, data.frame(name = fileName, size = fileSizeInMb))
+      } else {
+        stop("File not found!") 
+      }
+    }
+  }
+  df
+}
+```
+
+1. The datasets consist of 4 locales and for the purpose of this report, only the datasets under `en_US` were considered.
+2. Below shows the individual file size under `en_US` folder.
+```{r showFileInfo, results = "markup"}
+getFileInfo(finalDirectory)
+```
+
+## Sampling the Data
+```{r}
+makeFqnOutputFilePath <- function(locale, context) {
+  localeDirectory <- paste(outputDirectory, locale, sep = filePathSep)
+  dir.create(localeDirectory, showWarnings = FALSE, recursive = TRUE)
+  fileName <- paste(locale, context, fileExt, sep = fileNameSep)
+  fqnOutputFileName <- paste(localeDirectory, fileName, sep = filePathSep)
+  fqnOutputFileName
+}
+
+makeReducedData <- function(fileName, factor = 0.01) {
+  connection <- file(fileName, "rb")
+  contents <- readLines(connection, encoding = "UTF-8", skipNul = TRUE)
+  newContents <- sample(contents, length(contents) * factor)
+  on.exit(close(connection))
+  newContents
+}
+
+writeDataToFile <- function(fileName, data, printFileName = FALSE) {
+  write(data, file = fileName) # over write file
+  if(printFileName == TRUE) print(fileName)
+}
+
+makeSampleFiles <- function() {
+  for (locale in locales) {
+    for (context in contexts) {
+      fileName <- paste(locale, context, fileExt, sep = fileNameSep)
+      fullQualifiedFileName <- paste(finalDirectory, locale, fileName, sep = filePathSep)
+      if (file.exists(fullQualifiedFileName) == TRUE) {
+        writeDataToFile(
+          makeFqnOutputFilePath(locale, context), 
+          makeReducedData(fullQualifiedFileName))
+      } else {
+        stop("File not found!") 
+      }
+    }
+  }
+}
+```
+
+1. Based on information from [Getting the Data Section](#getting-the-data). It was decided to sample 1% of the dataset.
+```{r makeSampleFiles}
+makeSampleFiles()
+```
+2. Below shows the individual sampled file size.
+```{r showSampledFileInfo, results = "markup"}
+getFileInfo(outputDirectory)
+```
+
+## Construct Corpus
+
+This section describes the creation of `Corpus` in R as a representation of multiple text documents and the procedures taken to preprocess it.
+
+1. Built `Corpus` using R Package "tm" with text documents described in [the Sample the Data section](#sample-the-data).
+```{r constructCorpus}
+enUsOutputDirectory <- paste(outputDirectory, locales, sep = filePathSep)
+
+makeCorpus <- function(d) {
+  dirSource <- DirSource(directory = d, encoding = "UTF-8")
+  ovid <- VCorpus(dirSource, readerControl = list(language = "eng"))
+  on.exit(close(dirSource))
+  ovid
+}
+
+ovid <- makeCorpus(enUsOutputDirectory)
+```
+
+```{r results = "markup"}
+ovid
+```
+2. Applied `Transformation` onto `Corpus` Object. The objective is to reduce noise in the texts.
+    + Make all text to lower case.
+    + Remove all punctuations.
+    + Remove all numbers.
+    + Remove all English stop words.
+    + Stemming all text documents.
+    + Strip unnecessary white spaces.
+```{r transformCorpus}
+transformCorpus <- function(corpus) {
+  corpus <- tm_map(corpus, tolower)
+  corpus <- tm_map(corpus, removePunctuation)
+  corpus <- tm_map(corpus, removeNumbers)
+  # corpus <- tm_map(corpus, removeWords, stopwords("english"))
+  corpus <- tm_map(corpus, stemDocument)
+  corpus <- tm_map(corpus, stripWhitespace)
+  corpus <- tm_map(corpus, PlainTextDocument)
+  corpus
+}
+ovid <- transformCorpus(ovid)
+```
+
+```{r tagTextDocumentWithId}
+tagDocumentWithId <- function(corpus) {
+  for(i in c(1 : length(corpus))) {
+    DublinCore(corpus[[i]], "id") <- i
+  }
+  corpus
+}
+
+ovid <- tagDocumentWithId(ovid)
+```
+3. Built `TermDocumentMatrix` for evaluation of Term frequency by text document.
+```{r buildTermDocumentMatrix}
+documentTermMatrix <- DocumentTermMatrix(ovid)
+termDocumentMatrix <- as.TermDocumentMatrix(documentTermMatrix)
+```
+
+```{r results = "markup"}
+termDocumentMatrix
+```
+4. Reduce sparsity from `TermDocumentMatrix`. The objective is to remove thinly dispersed or scattered texts.
+```{r removeSparsity}
+termDocumentMatrix2 <- removeSparseTerms(termDocumentMatrix, 0.1)
+```
+
+```{r results = "markup"}
+termDocumentMatrix2
+```
+
+# Data Exploratory Analysis
+
+The section attempts to present the exploratory analysis based on the `Corpus` created from the [Construct Corpus section](#construct-corpus-section). 
+
+## Word Cloud
+
+A visual representation of 170 words that appears in the `Corpus` as brief linguistic context.
+```{r createWordCloud}
+termDocumentMatrix3 <- as.matrix(termDocumentMatrix2)
+termDocumentMatrix4 <- melt(termDocumentMatrix3, value.name = "Count")
+termDocumentMatrix5 <- aggregate(Count ~ Terms, data = termDocumentMatrix4, sum)
+termDocumentMatrix6 <- termDocumentMatrix5[order(termDocumentMatrix5$Count, decreasing = TRUE), ]
+termDocumentMatrix6$Terms <- as.character(termDocumentMatrix6$Terms)
+
+wordcloud(termDocumentMatrix6$Terms, termDocumentMatrix6$Count, 
+          random.order = FALSE, rot.per = 0.35,
+          max.words = 170, colors = brewer.pal(6, "Dark2"))
+```
+
+## N-Gram(s)
+N-Gram represents sequence of "n" number of text items(E.g. phonemes, syllables, letters, words, base pairs and etc). This section attempts to explore the counts of 1-Gram, 2-Grams and 3-Grams of the created `Corpus`.
+```{r createNgrams}
+gramTokenizer <- function(n) {
+  NGramTokenizer(ovid, Weka_control(min = n, max = n, delimiters = " \\r\\n\\t.,;:\"()?!"))
+}
+
+oneGram <- gramTokenizer(1)
+biGram <- gramTokenizer(2)
+triGram <- gramTokenizer(3)
+
+oneGramDf <- data.frame(table(oneGram))
+biGramDf <- data.frame(table(biGram))
+triGramDf <- data.frame(table(triGram))
+
+sanitizeGramDf <- function(df) {
+  newDf <- data.frame(Term = as.character(df[, 1]), Count = df[, 2])
+  newDf
+}
+
+oneGramDf <- sanitizeGramDf(oneGramDf)
+biGramDf <- sanitizeGramDf(biGramDf)
+triGramDf <- sanitizeGramDf(triGramDf)
+
+sortGramDf <- function(df) {
+  df[order(df$Count, decreasing = TRUE), ]
+}
+
+oneGramDf <- sortGramDf(oneGramDf)
+biGramDf <- sortGramDf(biGramDf)
+triGramDf <- sortGramDf(triGramDf)
+
+reductionRows <- c(1: 30)
+oneGramDfReduced <- oneGramDf[reductionRows, ]
+biGramDfReduced <- biGramDf[reductionRows, ]
+triGramDfReduced <- triGramDf[reductionRows, ]
+```
+
+```{r nGramPlotFunction}
+plotNgram <- function(df, titleLabel, xLabel, yLabel) {
+  plot1 <- ggplot(df, aes(x = reorder(Term, -Count), y = Count))
+  plot1 <- plot1 + geom_bar(stat = "identity")
+  plot1 <- plot1 + ggtitle(titleLabel)
+  plot1 <- plot1 + labs(x = xLabel, y = yLabel)
+  plot1 <- plot1 + theme(axis.text.x = element_text(angle = 45, size = 14, hjust = 1), 
+                         plot.title = element_text(size = 20, face = "bold"))
+  plot1
+}
+```
+
+### 1-Gram
+```{r results = "markup", fig.width = 10}
+plotNgram(oneGramDfReduced, "Top 30 1-Gram", "1-Gram", "Count of 1-Gram")
+```
+
+### 2-Grams
+```{r results = "markup", fig.width = 10}
+plotNgram(biGramDfReduced, "Top 30 2-Grams", "2-Grams", "Count of 2-Grams")
+```
+
+### 3-Grams
+```{r results = "markup", fig.width = 10}
+plotNgram(triGramDfReduced, "Top 30 3-Grams", "3-Grams", "Count of 3-Grams")
+```
+
+# Summary
+1. From [Getting the Data section](#getting-the-Data). It was observed that the file size for Blogs and News were bigger than Twitter. This could be caused by tweets usually have shorter text length.
+2. From [Word Cloud](#word-cloud). It was observed that there was not a determinable linguistic context (E.g. Scientific, Entertainment, Politics or etc ). Therefore it was assumed that the `Corpus` consist of a wide range of context(lose linguistic context).
+3. From [N-Gram(s) section](#n-grams). The Top 30 [1-Gram](#1-gram) and [2-Grams](#2-grams) appeared to have more reasonable linguistic context. 
+4. However the [3-Grams](#3-grams) consisted word-combinations that did not have reasonable context. As examples,
+    + "x x x"
+    + "gov chris christie"
+5. The [3-Grams](#3-grams) consisted words that were Non-English. As example,
+    + "cinco de mayo"
+ 
+# Future Work / Recommendation
+1. Use bigger size of sample data, possible 3% - 5%; If hardware resources permitted.
+2. Apply stricter text clearning process before building `Corpus`. (E.g. Remove slangs, Remove Non-English texts)
+3. Perform higher N-Gram(s) analysis to understand better lingustic context of the datasets.
+4. Explore various NLP modelling techniques and bulding Model based on existing data above.
+
+# References
+
+1. [https://cran.r-project.org/web/packages/tm/vignettes/tm.pdf](https://cran.r-project.org/web/packages/tm/vignettes/tm.pdf)
+2. [http://www.r-bloggers.com/text-mining-the-complete-works-of-william-shakespeare/](http://www.r-bloggers.com/text-mining-the-complete-works-of-william-shakespeare/)
+3. [https://rstudio-pubs-static.s3.amazonaws.com/31867_8236987cf0a8444e962ccd2aec46d9c3.html](https://rstudio-pubs-static.s3.amazonaws.com/31867_8236987cf0a8444e962ccd2aec46d9c3.html)
+4. [http://www.rdatamining.com/examples/text-mining](http://www.rdatamining.com/examples/text-mining)
