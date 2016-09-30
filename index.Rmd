@@ -13,7 +13,7 @@ knit        : slidify::knit2slides
 
 ## Read-And-Delete
 
-1. Modification DOne heree - Shiva
+1. SModification DOne heree - Shiva
 2. Write using R Markdown
 3. Use an empty line followed by three dashes to separate slides!
 
