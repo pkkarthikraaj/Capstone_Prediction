@@ -72,7 +72,7 @@ Markov Chain Model is the main driver of this application. It represents each wo
 
 ---
 
-### FUTURE PLANS
+## FUTURE PLANS
 
 To improve the performance of this prediction model,
 
