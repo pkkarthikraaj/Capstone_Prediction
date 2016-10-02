@@ -43,25 +43,127 @@
     <!-- SLIDES -->
     <slide class="" id="slide-1" style="background:;">
   <hgroup>
-    <h2>Read-And-Delete</h2>
+    <h2>INTRODUCTION</h2>
   </hgroup>
   <article data-timings="">
-    <ol>
-<li>SModification DOne heree - Shiva</li>
-<li>Write using R Markdown</li>
-<li>Use an empty line followed by three dashes to separate slides!</li>
-</ol>
+    <p>This capstone project involved applying data science in the area of natural language processing to build an app to highlight a prediction algorithm generated from a corpus of text files provided by SwiftKey.</p>
+
+<p>The dataset is provided by the Coursera course website. It is derived from a corpus called HC Corpora
+<a href="http://www.corpora.heliohost.org">www.corpora.heliohost.org</a>.</p>
+
+<p>The dataset provided included three corpus files (blogs, news, and twitter) for each of four locales (US English, German, Russian, and Finnish). This app focuses exclusively on the US English files.</p>
 
   </article>
   <!-- Presenter Notes -->
 </slide>
 
-<slide class="class" id="id" style="background:;">
+<slide class="" id="slide-2" style="background:;">
   <hgroup>
-    <h2>Slide 2</h2>
+    <h2>DATA PREDICTION ALGORITHM</h2>
   </hgroup>
   <article data-timings="">
-    
+    <ul>
+<li>Download and Unzip The Data</li>
+<li>Select US Data</li>
+<li>Clean the Data &amp; Remove Bad Words</li>
+<li>Tokenize the Data</li>
+<li>Explore the Data &amp; Sample the Data</li>
+<li>Build N-Gram Model</li>
+<li>Build Predictive Model</li>
+<li>Data sampling was performed so as to reduce the size of the data. Final data Size was 1.2 MB compared with 560 MB for the original data.</li>
+</ul>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-3" style="background:;">
+  <hgroup>
+    <h2>BUILDING PREDICTIVE MODEL</h2>
+  </hgroup>
+  <article data-timings="">
+    <ul>
+<li>The user inputs two words (a 2-gram) to the predict function - with the goal of generating most likely third words</li>
+<li>The 2-gram is searched for in the trigram model look-up table</li>
+<li>If that 2-gram does not exist, a simple message appears that The word did not exist in the look-up table (in prototype only) </li>
+<li>If the bigram is found, a subset of all 3-grams starting ith that 2-gram are generated </li>
+<li>For more accuracy, the same process can be repeated for 4gram &amp; 3gram of data</li>
+</ul>
+
+<p><center><img src=./images/high-level-architecture1.png height='40%' width='40%' /></center></p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-4" style="background:;">
+  <hgroup>
+    <h2>PERFORMANCE TUNING (MARKOV CHAIN)</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>Markov Chain Model is the main driver of this application. It represents each word as state with trasitional probabilities. As an example below, word &quot;B&quot; has 30% chance to transit to word &quot;A&quot;.</p>
+
+<table><thead>
+<tr>
+<th></th>
+<th>A</th>
+<th>B</th>
+</tr>
+</thead><tbody>
+<tr>
+<td>A</td>
+<td>0.6</td>
+<td>0.4</td>
+</tr>
+<tr>
+<td>B</td>
+<td>0.3</td>
+<td>0.7</td>
+</tr>
+</tbody></table>
+
+<p><code>Add-1 Smoothing</code> is applied to distribute some of the high probability mass to words that have zero probability mass. The objective is to have a fairer prediction model.</p>
+
+<p><code>Shiny Application</code> embeds the <code>model</code> described above; along with the <code>Prediction Executor</code> and <code>User Interface</code>.</p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-5" style="background:;">
+  <hgroup>
+    <h2>HOW TO USE</h2>
+  </hgroup>
+  <article data-timings="">
+    <ul>
+<li>Type in some text and hit the <code>submit</code> button! </li>
+<li>For more information, Hit the <code>Overview</code> tab!</li>
+</ul>
+
+<p><center><img src=./images/Application.png height='75%' width='75%' /></center></p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-6" style="background:;">
+  <hgroup>
+    <h3>FUTURE PLANS</h3>
+  </hgroup>
+  <article data-timings="">
+    <p>To improve the performance of this prediction model,</p>
+
+<ol>
+<li>Increase Corpus size and/or type.</li>
+<li>Cascade prediction model; this may improve prediction results.</li>
+<li>Increase machine resource; be able to create more complex model.</li>
+<li>Increase Shiny io resource; be able to host more complex text predictiona application.</li>
+</ol>
+
+<p>Data Prediction Application Link - <a href="https://spdkarthik.shinyapps.io/SCapstone/">here</a>.</p>
+
+<p>For more detailed information about the implementation, you may see <a href="https://github.com/pkkarthikraaj/Capstone_Prediction">here</a></p>
+
   </article>
   <!-- Presenter Notes -->
 </slide>
@@ -72,14 +174,38 @@
     <ul>
       <li>
       <a href="#" target="_self" rel='tooltip' 
-        data-slide=1 title='Read-And-Delete'>
+        data-slide=1 title='INTRODUCTION'>
          1
       </a>
     </li>
     <li>
       <a href="#" target="_self" rel='tooltip' 
-        data-slide=2 title='Slide 2'>
+        data-slide=2 title='DATA PREDICTION ALGORITHM'>
          2
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=3 title='BUILDING PREDICTIVE MODEL'>
+         3
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=4 title='PERFORMANCE TUNING (MARKOV CHAIN)'>
+         4
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=5 title='HOW TO USE'>
+         5
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=6 title='FUTURE PLANS'>
+         6
       </a>
     </li>
   </ul>
